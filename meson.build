@@ -94,6 +94,7 @@ xkbregistry = dependency('xkbregistry')
 libjack = dependency('jack', required: get_option('jack'))
 libwireplumber = dependency('wireplumber-0.5', required: get_option('wireplumber'))
 libgps = dependency('libgps', required: get_option('gps'))
+libcurl = dependency('libcurl')
 
 libsndio = compiler.find_library('sndio', required: get_option('sndio'))
 if libsndio.found()
@@ -170,6 +171,10 @@ src_files = files(
     'src/modules/load.cpp',
     'src/modules/temperature.cpp',
     'src/modules/user.cpp',
+    'src/modules/quiet.cpp',
+    'src/modules/namaz.cpp',
+    'src/modules/google_calendar.cpp',
+    'src/modules/screensaver.cpp',
     'src/ASlider.cpp',
     'src/main.cpp',
     'src/bar.cpp',
@@ -563,7 +568,8 @@ executable(
 		xkbregistry,
         cava,
         eproxy,
-        libgps
+        libgps,
+        libcurl
     ],
     include_directories: inc_dirs,
     install: true,

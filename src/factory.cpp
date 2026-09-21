@@ -120,6 +120,10 @@
 #include "modules/image.hpp"
 #include "modules/temperature.hpp"
 #include "modules/user.hpp"
+#include "modules/quiet.hpp"
+#include "modules/namaz.hpp"
+#include "modules/google_calendar.hpp"
+#include "modules/screensaver.hpp"
 
 waybar::Factory::Factory(const Bar& bar, const Json::Value& config) : bar_(bar), config_(config) {}
 
@@ -129,6 +133,18 @@ waybar::AModule* waybar::Factory::makeModule(const std::string& name,
     auto hash_pos = name.find('#');
     auto ref = name.substr(0, hash_pos);
     auto id = hash_pos != std::string::npos ? name.substr(hash_pos + 1) : "";
+    if (ref == "quiet" || ref == "notifications") {
+      return new waybar::modules::Quiet(id, config_[name]);
+    }
+    if (ref == "namaz") {
+      return new waybar::modules::Namaz(id, config_[name]);
+    }
+    if (ref == "google_calendar") {
+      return new waybar::modules::GoogleCalendar(id, config_[name]);
+    }
+    if (ref == "screensaver") {
+      return new waybar::modules::Screensaver(id, config_[name]);
+    }
 #if defined(__FreeBSD__) || defined(__linux__)
     if (ref == "battery") {
       return new waybar::modules::Battery(id, bar_, config_[name]);

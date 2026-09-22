@@ -63,6 +63,7 @@ class Clock final : public ALabel {
   const bool tzInTooltip_;                      // if need to print time zones text
   std::vector<const date::time_zone*> tzList_;  // time zones list
   std::vector<std::string> tzLabels_;           // optional display labels for time zones
+  std::vector<std::string> tzTooltipLabels_;    // optional tooltip labels for time zones
   int tzCurrIdx_;                               // current time zone index for tzList_
   std::string tzText_{""};                      // time zones text to print
   std::string tzTooltipFormat_{""};             // optional timezone tooltip format
@@ -75,6 +76,7 @@ class Clock final : public ALabel {
 
   auto getTZtext(date::sys_seconds now) -> std::string;
   auto getTZLabel(size_t index) const -> std::string;
+  auto getTZTooltipLabel(size_t index) const -> std::string;
   bool handleToggle(GdkEventButton* const& event) override;
   auto first_day_of_week() -> date::weekday;
   // Module actions

@@ -32,6 +32,8 @@ class Quiet : public ALabel {
 
   uint32_t count_{0};
   uint32_t urgency_{0};
+  uint32_t preview_timeout_seconds_{5};
+  bool arm_timer_{false};
   std::string message_preview_;
   std::mutex mutex_;
 };

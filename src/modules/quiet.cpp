@@ -6,7 +6,13 @@
 namespace waybar::modules {
 
 Quiet::Quiet(const std::string& id, const Json::Value& config)
-    : ALabel(config, "quiet", id, "{count}", 0, false, true) {
+    : ALabel(config, "quiet", id, "{count}", 0, false, true),
+      preview_timeout_seconds_(config["preview-timeout"].isUInt()
+                                   ? config["preview-timeout"].asUInt()
+                                   : 5) {
+  event_box_.set_no_show_all(true);
+  event_box_.hide();
+  label_.show();
   GError* error = nullptr;
   connection_ = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error);
   if (!connection_) {
@@ -98,22 +104,12 @@ void Quiet::handleNotificationUpdate(GVariant* parameters) {
     count_ = num;
     urgency_ = urgency;
 
-    if (timer_connection_.connected()) {
-      timer_connection_.disconnect();
-    }
-
-    if (msg && *msg) {
+    if (mode == 0 && msg && *msg && count_ > 0 && preview_timeout_seconds_ > 0) {
       message_preview_ = msg;
+      arm_timer_ = true;
     } else {
       message_preview_.clear();
-    }
-
-    if (mode == 0 && !message_preview_.empty()) {
-      // 30-second preview timer
-      timer_connection_ = Glib::signal_timeout().connect_seconds(
-          sigc::mem_fun(*this, &Quiet::onTimeout), 30);
-    } else if (count_ == 0) {
-      message_preview_.clear();
+      arm_timer_ = false;
     }
   }
 
@@ -134,6 +130,7 @@ void Quiet::clearPreview() {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     message_preview_.clear();
+    arm_timer_ = false;
   }
   dp.emit();
 }
@@ -143,6 +140,7 @@ bool Quiet::handleToggle(GdkEventButton* const& e) {
     {
       std::lock_guard<std::mutex> lock(mutex_);
       message_preview_.clear();
+      arm_timer_ = false;
     }
     g_dbus_connection_call(
         connection_,
@@ -166,13 +164,28 @@ bool Quiet::handleToggle(GdkEventButton* const& e) {
 auto Quiet::update() -> void {
   std::string display_text;
   bool is_urgent = false;
+  bool should_arm_timer = false;
+  bool has_preview = false;
   uint32_t current_count = 0;
 
   {
     std::lock_guard<std::mutex> lock(mutex_);
     current_count = count_;
     is_urgent = (urgency_ == 2);
-    display_text = message_preview_.empty() ? std::to_string(count_) : message_preview_;
+    should_arm_timer = arm_timer_;
+    arm_timer_ = false;
+    has_preview = !message_preview_.empty();
+    display_text = has_preview ? message_preview_ : std::to_string(count_);
+  }
+
+  if (should_arm_timer) {
+    if (timer_connection_.connected()) {
+      timer_connection_.disconnect();
+    }
+    timer_connection_ = Glib::signal_timeout().connect_seconds(
+        sigc::mem_fun(*this, &Quiet::onTimeout), preview_timeout_seconds_);
+  } else if (!has_preview && timer_connection_.connected()) {
+    timer_connection_.disconnect();
   }
 
   if (is_urgent) {
@@ -181,7 +194,7 @@ auto Quiet::update() -> void {
     label_.get_style_context()->remove_class("urgent");
   }
 
-  if (current_count > 0 || !message_preview_.empty()) {
+  if (current_count > 0 || has_preview) {
     label_.get_style_context()->add_class("has-notifications");
   } else {
     label_.get_style_context()->remove_class("has-notifications");
@@ -189,10 +202,10 @@ auto Quiet::update() -> void {
 
   if (current_count == 0) {
     event_box_.hide();
-    label_.set_markup("");
+    label_.set_text("");
   } else {
     event_box_.show();
-    label_.set_markup(display_text);
+    label_.set_text(display_text);
   }
 
   if (tooltipEnabled()) {

@@ -69,6 +69,12 @@ waybar::modules::Clock::Clock(const std::string& id, const Json::Value& config)
     }
   }
 
+  if (config_["timezone-tooltip-labels"].isArray()) {
+    for (const auto& label : config_["timezone-tooltip-labels"]) {
+      if (label.isString()) tzTooltipLabels_.push_back(label.asString());
+    }
+  }
+
   // Calendar properties
   if (cldInTooltip_) {
     if (config_[kCldPlaceholder]["mode"].isString()) {
@@ -172,7 +178,12 @@ auto waybar::modules::Clock::update() -> void {
   auto display_format = format_;
   const auto tz_label_pos = display_format.find("{" + kTZLabelPlaceholder + "}");
   if (tz_label_pos != std::string::npos) {
-    display_format.replace(tz_label_pos, kTZLabelPlaceholder.size() + 2, getTZLabel(tzCurrIdx_));
+    const auto tz_label = getTZLabel(tzCurrIdx_);
+    if (tz_label.empty() && tz_label_pos > 0 && display_format[tz_label_pos - 1] == ' ') {
+      display_format.replace(tz_label_pos - 1, kTZLabelPlaceholder.size() + 3, "");
+    } else {
+      display_format.replace(tz_label_pos, kTZLabelPlaceholder.size() + 2, tz_label);
+    }
   }
   label_.set_markup(fmt_lib::vformat(m_locale_, display_format, fmt_lib::make_format_args(now)));
 
@@ -209,14 +220,22 @@ auto waybar::modules::Clock::update() -> void {
 auto waybar::modules::Clock::getTZtext(sys_seconds now) -> std::string {
   if (tzList_.size() == 1) return "";
 
+  std::string fmt = tzTooltipFormat_.empty() ? "{:%H:%M}" : tzTooltipFormat_;
+  if (!tzLabels_.empty() || !tzTooltipLabels_.empty()) {
+    fmt = std::regex_replace(fmt, std::regex("\\s*%[zZ]"), "");
+  }
+
   std::stringstream os;
   bool first = true;
   for (size_t tz_idx{0}; tz_idx < tzList_.size(); ++tz_idx) {
     // Skip local timezone (nullptr) - never show it in tooltip
     if (tzList_[tz_idx] == nullptr) continue;
 
-    // Skip current timezone unless timezone-tooltip-format is specified
-    if (static_cast<int>(tz_idx) == tzCurrIdx_ && tzTooltipFormat_.empty()) continue;
+    // Skip current timezone unless timezone-tooltip-format or labels are specified
+    if (static_cast<int>(tz_idx) == tzCurrIdx_ && tzTooltipFormat_.empty() && tzLabels_.empty() &&
+        tzTooltipLabels_.empty()) {
+      continue;
+    }
 
     const auto* tz = tzList_[tz_idx];
     auto zt{zoned_time{tz, now}};
@@ -227,9 +246,7 @@ auto waybar::modules::Clock::getTZtext(sys_seconds now) -> std::string {
     }
     first = false;
 
-    // Use timezone-tooltip-format if specified, otherwise use format_
-    const std::string& fmt = tzTooltipFormat_.empty() ? format_ : tzTooltipFormat_;
-    const auto label = getTZLabel(tz_idx);
+    const auto label = getTZTooltipLabel(tz_idx);
     if (!label.empty()) os << label << " ";
     os << fmt_lib::vformat(m_locale_, fmt, fmt_lib::make_format_args(zt));
   }
@@ -243,6 +260,32 @@ auto waybar::modules::Clock::getTZLabel(size_t index) const -> std::string {
     return std::string{tzList_[index]->name()};
   }
   return "Local";
+}
+
+auto waybar::modules::Clock::getTZTooltipLabel(size_t index) const -> std::string {
+  if (index < tzTooltipLabels_.size() && !tzTooltipLabels_[index].empty()) {
+    return tzTooltipLabels_[index];
+  }
+  if (index < tzLabels_.size() && !tzLabels_[index].empty()) {
+    return tzLabels_[index];
+  }
+  if (index < tzList_.size() && tzList_[index] != nullptr) {
+    const std::string name{tzList_[index]->name()};
+    if (name == "America/New_York" || name == "America/Chicago" || name == "America/Denver" ||
+        name == "America/Los_Angeles" || name == "US/Eastern" || name == "US/Pacific") {
+      return "🇺🇸";
+    }
+    if (name == "Europe/Zurich") return "🇨🇭";
+    if (name == "Asia/Istanbul" || name == "Europe/Istanbul") return "🇹🇷";
+    if (name == "Europe/London") return "🇬🇧";
+    if (name == "Europe/Berlin") return "🇩🇪";
+    if (name == "Europe/Paris") return "🇫🇷";
+    if (name == "Asia/Tokyo") return "🇯🇵";
+    if (tzLabels_.empty() && tzTooltipLabels_.empty()) {
+      return name;
+    }
+  }
+  return "";
 }
 
 bool waybar::modules::Clock::handleToggle(GdkEventButton* const& event) {

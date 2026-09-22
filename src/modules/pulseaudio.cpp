@@ -140,6 +140,10 @@ auto waybar::modules::Pulseaudio::update() -> void {
     } else {
       label_.set_tooltip_text(sink_desc);
     }
+    // Volume scrolling updates the label while the pointer remains over it.
+    // Ask GTK to refresh the existing tooltip so the percentage stays visible
+    // instead of waiting for a leave/re-enter cycle.
+    label_.trigger_tooltip_query();
   }
 
   // Call parent update

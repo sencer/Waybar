@@ -1,0 +1,71 @@
+name: Release Linux Binary
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release tag (defaults to the custom Waybar version)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    env:
+      ARCHIVE: waybar-x86_64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            g++ meson ninja-build pkg-config \
+            libcurl4-openssl-dev libdbusmenu-gtk3-dev libevdev-dev libfmt-dev \
+            libgtk-layer-shell-dev libgtkmm-3.0-dev libinput-dev libjsoncpp-dev \
+            libnl-3-dev libnl-genl-3-dev libpango1.0-dev libplayerctl-dev \
+            libpulse-dev libsigc++-2.0-dev libspdlog-dev libsystemd-dev \
+            libudev-dev libupower-glib-dev libwayland-dev libxkbcommon-dev \
+            wayland-protocols
+
+      - name: Build Waybar
+        run: |
+          meson setup build --buildtype=release --prefix=/usr \
+            -Dman-pages=disabled -Dtests=disabled
+          ninja -C build
+
+      - name: Package binary
+        run: |
+          mkdir -p "$ARCHIVE"
+          install -m 0755 build/waybar "$ARCHIVE/waybar"
+          cp LICENSE "$ARCHIVE/"
+          tar -czf "$ARCHIVE.tar.gz" "$ARCHIVE"
+          sha256sum "$ARCHIVE.tar.gz" > "$ARCHIVE.tar.gz.sha256"
+
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag_name }}" ]; then
+            tag="${{ inputs.tag_name }}"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            tag="${GITHUB_REF#refs/tags/}"
+          else
+            tag="v$(meson introspect build --projectinfo | jq -r .version)-custom"
+          fi
+          echo "name=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: Waybar ${{ steps.tag.outputs.name }}
+          generate_release_notes: true
+          files: |
+            ${{ env.ARCHIVE }}.tar.gz
+            ${{ env.ARCHIVE }}.tar.gz.sha256

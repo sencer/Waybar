@@ -8,6 +8,7 @@ namespace waybar::modules {
 
 const std::string kCldPlaceholder{"calendar"};
 const std::string kTZPlaceholder{"tz_list"};
+const std::string kTZLabelPlaceholder{"tz_label"};
 const std::string kOrdPlaceholder{"ordinal_date"};
 
 enum class CldMode { MONTH, YEAR };
@@ -73,6 +74,7 @@ class Clock final : public ALabel {
   auto get_ordinal_date(const date::year_month_day& today) -> std::string;
 
   auto getTZtext(date::sys_seconds now) -> std::string;
+  auto getTZLabel(size_t index) const -> std::string;
   auto first_day_of_week() -> date::weekday;
   // Module actions
   void cldModeSwitch();

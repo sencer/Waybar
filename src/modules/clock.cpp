@@ -168,7 +168,12 @@ auto waybar::modules::Clock::update() -> void {
   const auto* tz = tzList_[tzCurrIdx_] != nullptr ? tzList_[tzCurrIdx_] : local_zone();
   const zoned_time now{tz, floor<seconds>(system_clock::now())};
 
-  label_.set_markup(fmt_lib::vformat(m_locale_, format_, fmt_lib::make_format_args(now)));
+  auto display_format = format_;
+  const auto tz_label_pos = display_format.find("{" + kTZLabelPlaceholder + "}");
+  if (tz_label_pos != std::string::npos) {
+    display_format.replace(tz_label_pos, kTZLabelPlaceholder.size() + 2, getTZLabel(tzCurrIdx_));
+  }
+  label_.set_markup(fmt_lib::vformat(m_locale_, display_format, fmt_lib::make_format_args(now)));
 
   if (tooltipEnabled()) {
     const year_month_day today{floor<days>(now.get_local_time())};
@@ -223,13 +228,19 @@ auto waybar::modules::Clock::getTZtext(sys_seconds now) -> std::string {
 
     // Use timezone-tooltip-format if specified, otherwise use format_
     const std::string& fmt = tzTooltipFormat_.empty() ? format_ : tzTooltipFormat_;
-    const std::string label = tz_idx < tzLabels_.size() && !tzLabels_[tz_idx].empty()
-                                  ? tzLabels_[tz_idx]
-                                  : std::string{tz->name()};
-    os << label << ": " << fmt_lib::vformat(m_locale_, fmt, fmt_lib::make_format_args(zt));
+    os << getTZLabel(tz_idx) << ": "
+       << fmt_lib::vformat(m_locale_, fmt, fmt_lib::make_format_args(zt));
   }
 
   return os.str();
+}
+
+auto waybar::modules::Clock::getTZLabel(size_t index) const -> std::string {
+  if (index < tzLabels_.size() && !tzLabels_[index].empty()) return tzLabels_[index];
+  if (index < tzList_.size() && tzList_[index] != nullptr) {
+    return std::string{tzList_[index]->name()};
+  }
+  return "Local";
 }
 
 const unsigned cldRowsInMonth(const year_month& ym, const weekday& firstdow) {

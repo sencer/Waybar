@@ -75,6 +75,7 @@ class Clock final : public ALabel {
 
   auto getTZtext(date::sys_seconds now) -> std::string;
   auto getTZLabel(size_t index) const -> std::string;
+  bool handleToggle(GdkEventButton* const& event) override;
   auto first_day_of_week() -> date::weekday;
   // Module actions
   void cldModeSwitch();

@@ -244,6 +244,12 @@ auto waybar::modules::Clock::getTZLabel(size_t index) const -> std::string {
   return "Local";
 }
 
+bool waybar::modules::Clock::handleToggle(GdkEventButton* const& event) {
+  // Clock actions are explicit: the configured action map owns left/right
+  // clicks. Do not let ALabel's generic format-alt-click hook run first.
+  return AModule::handleToggle(event);
+}
+
 const unsigned cldRowsInMonth(const year_month& ym, const weekday& firstdow) {
   return 2u + ceil<weeks>((weekday{ym / 1} - firstdow) + ((ym / last).day() - day{0})).count();
 }

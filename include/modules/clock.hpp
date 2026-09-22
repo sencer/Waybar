@@ -61,6 +61,7 @@ class Clock final : public ALabel {
   // time zoned time in tooltip
   const bool tzInTooltip_;                      // if need to print time zones text
   std::vector<const date::time_zone*> tzList_;  // time zones list
+  std::vector<std::string> tzLabels_;           // optional display labels for time zones
   int tzCurrIdx_;                               // current time zone index for tzList_
   std::string tzText_{""};                      // time zones text to print
   std::string tzTooltipFormat_{""};             // optional timezone tooltip format

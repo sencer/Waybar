@@ -62,6 +62,12 @@ waybar::modules::Clock::Clock(const std::string& id, const Json::Value& config)
   }
   if (!tzList_.size()) tzList_.push_back(nullptr);
 
+  if (config_["timezone-labels"].isArray()) {
+    for (const auto& label : config_["timezone-labels"]) {
+      if (label.isString()) tzLabels_.push_back(label.asString());
+    }
+  }
+
   // Calendar properties
   if (cldInTooltip_) {
     if (config_[kCldPlaceholder]["mode"].isString()) {
@@ -209,15 +215,18 @@ auto waybar::modules::Clock::getTZtext(sys_seconds now) -> std::string {
     const auto* tz = tzList_[tz_idx];
     auto zt{zoned_time{tz, now}};
 
-    // Add newline before each entry except the first
+    // Keep all zones on one line so each assignment remains visible while hovering.
     if (!first) {
-      os << '\n';
+      os << "  |  ";
     }
     first = false;
 
     // Use timezone-tooltip-format if specified, otherwise use format_
     const std::string& fmt = tzTooltipFormat_.empty() ? format_ : tzTooltipFormat_;
-    os << fmt_lib::vformat(m_locale_, fmt, fmt_lib::make_format_args(zt));
+    const std::string label = tz_idx < tzLabels_.size() && !tzLabels_[tz_idx].empty()
+                                  ? tzLabels_[tz_idx]
+                                  : std::string{tz->name()};
+    os << label << ": " << fmt_lib::vformat(m_locale_, fmt, fmt_lib::make_format_args(zt));
   }
 
   return os.str();

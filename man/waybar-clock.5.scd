@@ -39,6 +39,11 @@ $XDG_CONFIG_HOME/waybar/config ++
 :[ A list of timezones (as in *timezone*) to use for time display, changed using
    the scroll wheel. Do not specify *timezone* option when *timezones* is specified.
    "" represents the system's local timezone
+|[ *timezone-labels*
+:[ list of strings
+:[
+:[ Optional labels, in the same order as *timezones*, used to identify each timezone
+   in the tooltip (for example: ["NY", "ZRH", "IST"])
 |[ *timezone-tooltip-format*
 :[ string
 :[

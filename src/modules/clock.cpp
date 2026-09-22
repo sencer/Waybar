@@ -228,15 +228,16 @@ auto waybar::modules::Clock::getTZtext(sys_seconds now) -> std::string {
 
     // Use timezone-tooltip-format if specified, otherwise use format_
     const std::string& fmt = tzTooltipFormat_.empty() ? format_ : tzTooltipFormat_;
-    os << getTZLabel(tz_idx) << ": "
-       << fmt_lib::vformat(m_locale_, fmt, fmt_lib::make_format_args(zt));
+    const auto label = getTZLabel(tz_idx);
+    if (!label.empty()) os << label << " ";
+    os << fmt_lib::vformat(m_locale_, fmt, fmt_lib::make_format_args(zt));
   }
 
   return os.str();
 }
 
 auto waybar::modules::Clock::getTZLabel(size_t index) const -> std::string {
-  if (index < tzLabels_.size() && !tzLabels_[index].empty()) return tzLabels_[index];
+  if (index < tzLabels_.size()) return tzLabels_[index];
   if (index < tzList_.size() && tzList_[index] != nullptr) {
     return std::string{tzList_[index]->name()};
   }
@@ -517,6 +518,12 @@ void waybar::modules::Clock::tz_down() {
   const auto tzSize{tzList_.size()};
   if (tzSize == 1) return;
   tzCurrIdx_ = (tzCurrIdx_ == 0) ? tzSize - 1 : tzCurrIdx_ - 1;
+}
+
+void waybar::modules::Clock::toggle_format() {
+  if (!config_["format-alt"].isString()) return;
+  alt_ = !alt_;
+  format_ = alt_ ? config_["format-alt"].asString() : default_format_;
 }
 
 #ifdef HAVE_LANGINFO_1STDAY

@@ -83,6 +83,7 @@ class Clock final : public ALabel {
   void cldShift_reset();
   void tz_up();
   void tz_down();
+  void toggle_format();
   // Module Action Map
   static inline std::map<const std::string, void (waybar::modules::Clock::* const)()> actionMap_{
       {"mode", &waybar::modules::Clock::cldModeSwitch},
@@ -90,7 +91,8 @@ class Clock final : public ALabel {
       {"shift_down", &waybar::modules::Clock::cldShift_down},
       {"shift_reset", &waybar::modules::Clock::cldShift_reset},
       {"tz_up", &waybar::modules::Clock::tz_up},
-      {"tz_down", &waybar::modules::Clock::tz_down}};
+      {"tz_down", &waybar::modules::Clock::tz_down},
+      {"toggle_format", &waybar::modules::Clock::toggle_format}};
 };
 
 }  // namespace waybar::modules

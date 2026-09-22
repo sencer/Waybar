@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       ARCHIVE: waybar-x86_64-unknown-linux-gnu
     steps:
@@ -31,7 +31,7 @@ jobs:
             libgtk-layer-shell-dev libgtkmm-3.0-dev libinput-dev libjsoncpp-dev \
             libnl-3-dev libnl-genl-3-dev libpango1.0-dev libplayerctl-dev \
             libpulse-dev libsigc++-2.0-dev libspdlog-dev libsystemd-dev \
-            libudev-dev libupower-glib-dev libwayland-dev libxkbcommon-dev \
+            libudev-dev libupower-glib-dev libwayland-dev libxkbcommon-dev libxkbregistry-dev \
             wayland-protocols
 
       - name: Build Waybar

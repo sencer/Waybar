@@ -187,7 +187,13 @@ auto Quiet::update() -> void {
     label_.get_style_context()->remove_class("has-notifications");
   }
 
-  label_.set_markup(display_text);
+  if (current_count == 0) {
+    event_box_.hide();
+    label_.set_markup("");
+  } else {
+    event_box_.show();
+    label_.set_markup(display_text);
+  }
 
   if (tooltipEnabled()) {
     label_.set_tooltip_text(fmt::format("{} unread notification(s)", current_count));

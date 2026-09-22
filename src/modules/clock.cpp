@@ -34,6 +34,7 @@ waybar::modules::Clock::Clock(const std::string& id, const Json::Value& config)
                            ? config_["timezone-tooltip-format"].asString()
                            : ""},
       ordInTooltip_{m_tlpFmt_.find("{" + kOrdPlaceholder + "}") != std::string::npos} {
+  m_tooltip_->set_justify(Gtk::JUSTIFY_CENTER);
   m_tlpText_ = m_tlpFmt_;
 
   if (config_["timezones"].isArray() && !config_["timezones"].empty()) {
